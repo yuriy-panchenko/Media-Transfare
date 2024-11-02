@@ -12,6 +12,17 @@
 #define new DEBUG_NEW
 #endif
 
+#define PRS_SETTINGS	_T("Settings")
+#define	PRE_AUTO_RENAME	_T("AutoRename")
+#define	PRE_IGNORE_DUPLICATES	_T("IgnoreDuplicates")
+#define	PRE_SEARCH_SUBFOLDER	_T("SearchSubFolders")
+#define	PRE_IGNORE_FILES_LESS	_T("IgnoreFileLess")
+#define	PRE_IGNORE_SIZE	_T("FileLessSize")
+#define	PRE_IGNORE_TYPE	_T("FileLessType")
+#define	PRE_SOURCE_PATH	_T("SourecPath")
+#define	PRE_DESTINATION_PATH	_T("DestinationPath")
+
+
 
 // CAboutDlg dialog used for App About
 
@@ -31,6 +42,7 @@ protected:
 	// Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -68,25 +80,12 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_iIgnoreSizeType(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-
-	m_bAutoRename = TRUE;
-	m_bIgnoreDuplicates = TRUE;
-	m_bSearchSubFolders = TRUE;
-	//m_srcPath(_T(""))
-	//m_dstPath(_T(""))
-	//m_dstInfo1(_T(""))
-	//m_dstInfo2(_T(""))
-	//m_dstInfo3(_T(""))
-	//m_srcInfo1(_T(""))
-	//m_srcInfo2(_T(""))
-	//m_srcInfo3(_T(""))
 }
 
 void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Check(pDX, IDC_AUTO_RENAME, m_bAutoRename);
-	//  DDX_Text(pDX, IDC_BROWSE_DST, m_srcPath);
 	DDX_Text(pDX, IDC_BROWSE_DST, m_dstPath);
 	DDX_Text(pDX, IDC_BROWSE_SRC, m_srcPath);
 	DDX_Check(pDX, IDC_IGNORE_DUPLICATES, m_bIgnoreDuplicates);
@@ -110,6 +109,8 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CMediaTransfareDlg::OnBnClickedOk)
 	ON_EN_CHANGE(IDC_BROWSE_SRC, &CMediaTransfareDlg::OnChangeBrowseSrc)
 	ON_EN_CHANGE(IDC_BROWSE_DST, &CMediaTransfareDlg::OnChangeBrowseDst)
+	ON_BN_CLICKED(IDC_IGNORE_FILES_LESS, &CMediaTransfareDlg::OnBnClickedIgnoreFilesLess)
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -145,6 +146,19 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
+	m_srcPath = theApp.GetProfileString(PRS_SETTINGS, PRE_SOURCE_PATH);
+	m_dstPath = theApp.GetProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH);
+
+	m_bAutoRename = theApp.GetProfileInt(PRS_SETTINGS, PRE_AUTO_RENAME, TRUE);
+	m_bIgnoreDuplicates = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, TRUE);
+	m_bSearchSubFolders = theApp.GetProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, TRUE);
+
+	m_bIgnoreFilesLess = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, TRUE);
+	m_iIgnoreSize = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, 200);
+	m_iIgnoreSizeType = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_TYPE, 1);
+
+	UpdateData(FALSE);
+	UpdateControls();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -235,4 +249,33 @@ void CMediaTransfareDlg::OnChangeBrowseDst()
 void CMediaTransfareDlg::UpdateControls()
 {
 	GetDlgItem(IDOK)->EnableWindow(!m_srcPath.IsEmpty() && !m_dstPath.IsEmpty() && (m_srcPath != m_dstPath));
+	GetDlgItem(IDC_IGNORE_SIZE)->EnableWindow(m_bIgnoreFilesLess);
+	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(m_bIgnoreFilesLess);
+}
+
+
+void CMediaTransfareDlg::OnBnClickedIgnoreFilesLess()
+{
+	if (UpdateData())
+		UpdateControls();
+}
+
+
+void CMediaTransfareDlg::OnDestroy()
+{
+	CDialogEx::OnDestroy();
+
+	if (UpdateData())
+	{
+		theApp.WriteProfileString(PRS_SETTINGS, PRE_SOURCE_PATH, m_srcPath);
+		theApp.WriteProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH, m_dstPath);
+
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_AUTO_RENAME, m_bAutoRename);
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, m_bIgnoreDuplicates);
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, m_bSearchSubFolders);
+
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, m_bIgnoreFilesLess);
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, m_iIgnoreSize);
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_TYPE, m_iIgnoreSizeType);
+	}
 }

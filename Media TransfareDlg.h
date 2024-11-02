@@ -35,6 +35,10 @@ protected:
 	afx_msg void OnChangeBrowseSrc();
 	afx_msg void OnChangeBrowseDst();
 	DECLARE_MESSAGE_MAP()
+
+private:
+	void UpdateControls();
+
 private:
 	BOOL m_bAutoRename;
 	CString m_dstPath;
@@ -47,8 +51,10 @@ private:
 	CString m_srcInfo2;
 	CString m_srcInfo3;
 	BOOL m_bSearchSubFolders;
-	void UpdateControls();
 	BOOL m_bIgnoreFilesLess;
 	UINT_PTR m_iIgnoreSize;
 	int m_iIgnoreSizeType;
+public:
+	afx_msg void OnBnClickedIgnoreFilesLess();
+	afx_msg void OnDestroy();
 };
