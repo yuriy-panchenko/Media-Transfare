@@ -17,6 +17,7 @@
 #define	PRE_IGNORE_DUPLICATES	_T("IgnoreDuplicates")
 #define	PRE_SEARCH_SUBFOLDER	_T("SearchSubFolders")
 #define	PRE_IGNORE_FILES_LESS	_T("IgnoreFileLess")
+#define	PRE_REMOVE_COPIED	_T("RemoveCopied")
 #define	PRE_IGNORE_SIZE	_T("FileLessSize")
 #define	PRE_IGNORE_TYPE	_T("FileLessType")
 #define	PRE_SOURCE_PATH	_T("SourecPath")
@@ -78,6 +79,7 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_bIgnoreFilesLess(FALSE)
 	, m_iIgnoreSize(0)
 	, m_iIgnoreSizeType(0)
+	, m_bRemoveCopied(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -99,6 +101,7 @@ void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_IGNORE_FILES_LESS, m_bIgnoreFilesLess);
 	DDX_Text(pDX, IDC_IGNORE_SIZE, m_iIgnoreSize);
 	DDX_CBIndex(pDX, IDC_IGNORE_SIZE_COMBO, m_iIgnoreSizeType);
+	DDX_Check(pDX, IDC_REMOVE_COPIED, m_bRemoveCopied);
 }
 
 BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
@@ -146,12 +149,13 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-	m_srcPath = theApp.GetProfileString(PRS_SETTINGS, PRE_SOURCE_PATH);
-	m_dstPath = theApp.GetProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH);
+	//m_srcPath = theApp.GetProfileString(PRS_SETTINGS, PRE_SOURCE_PATH);
+	//m_dstPath = theApp.GetProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH);
 
 	m_bAutoRename = theApp.GetProfileInt(PRS_SETTINGS, PRE_AUTO_RENAME, TRUE);
 	m_bIgnoreDuplicates = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, TRUE);
 	m_bSearchSubFolders = theApp.GetProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, TRUE);
+	m_bRemoveCopied = theApp.GetProfileInt(PRS_SETTINGS, PRE_REMOVE_COPIED, TRUE);
 
 	m_bIgnoreFilesLess = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, TRUE);
 	m_iIgnoreSize = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, 200);
@@ -235,7 +239,12 @@ void CMediaTransfareDlg::OnBnClickedOk()
 void CMediaTransfareDlg::OnChangeBrowseSrc()
 {
 	if (UpdateData())
+	{
 		UpdateControls();
+
+		if (auto pThread = ::AfxBeginThread(CollectSourceFiles, this))
+			::WaitForSingleObject(*pThread, INFINITE);
+	}
 }
 
 
@@ -267,15 +276,32 @@ void CMediaTransfareDlg::OnDestroy()
 
 	if (UpdateData())
 	{
-		theApp.WriteProfileString(PRS_SETTINGS, PRE_SOURCE_PATH, m_srcPath);
-		theApp.WriteProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH, m_dstPath);
+		//theApp.WriteProfileString(PRS_SETTINGS, PRE_SOURCE_PATH, m_srcPath);
+		//theApp.WriteProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH, m_dstPath);
 
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_AUTO_RENAME, m_bAutoRename);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, m_bIgnoreDuplicates);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, m_bSearchSubFolders);
+		theApp.WriteProfileInt(PRS_SETTINGS, PRE_REMOVE_COPIED, m_bRemoveCopied);
 
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, m_bIgnoreFilesLess);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, m_iIgnoreSize);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_TYPE, m_iIgnoreSizeType);
 	}
+}
+
+//	AFX_THREADPROC
+
+UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
+{
+	auto pDlg=static_cast<CMediaTransfareDlg*>(pData);
+
+	CArray<CFileStatus> info;
+
+
+
+	CSingleLock _o(&pDlg->m_Mutex, TRUE);
+	pDlg->m_srcFiles.Copy(info);
+
+	return 0;
 }

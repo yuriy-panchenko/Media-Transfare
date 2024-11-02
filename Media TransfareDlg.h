@@ -34,15 +34,17 @@ protected:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnChangeBrowseSrc();
 	afx_msg void OnChangeBrowseDst();
+	afx_msg void OnBnClickedIgnoreFilesLess();
+	afx_msg void OnDestroy();
 	DECLARE_MESSAGE_MAP()
 
 private:
 	void UpdateControls();
+	static UINT CALLBACK CollectSourceFiles(LPVOID);
 
 private:
 	BOOL m_bAutoRename;
 	CString m_dstPath;
-	CString m_srcPath;
 	BOOL m_bIgnoreDuplicates;
 	CString m_dstInfo1;
 	CString m_dstInfo2;
@@ -52,9 +54,13 @@ private:
 	CString m_srcInfo3;
 	BOOL m_bSearchSubFolders;
 	BOOL m_bIgnoreFilesLess;
-	UINT_PTR m_iIgnoreSize;
+	int m_iIgnoreSize;
 	int m_iIgnoreSizeType;
+	BOOL m_bRemoveCopied;
+
 public:
-	afx_msg void OnBnClickedIgnoreFilesLess();
-	afx_msg void OnDestroy();
+	CString m_srcPath;
+	
+	CArray<CFileStatus> m_srcFiles, m_dstFiles;
+	CMutex m_Mutex;
 };
