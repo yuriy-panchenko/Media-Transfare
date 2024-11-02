@@ -185,6 +185,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CFileTypesDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Media Transfare.h" />
     <ClInclude Include="Media TransfareDlg.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CFileTypesDlg.cpp" />
     <ClCompile Include="Media Transfare.cpp" />
     <ClCompile Include="Media TransfareDlg.cpp" />
     <ClCompile Include="pch.cpp">

@@ -20,15 +20,15 @@ class CAboutDlg : public CDialogEx
 public:
 	CAboutDlg();
 
-// Dialog Data
+	// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-// Implementation
+	// Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -52,19 +52,64 @@ END_MESSAGE_MAP()
 
 CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_MEDIA_TRANSFARE_DIALOG, pParent)
+	, m_bAutoRename(FALSE)
+	, m_srcPath(_T(""))
+	, m_dstPath(_T(""))
+	, m_bIgnoreDuplicates(FALSE)
+	, m_dstInfo1(_T(""))
+	, m_dstInfo2(_T(""))
+	, m_dstInfo3(_T(""))
+	, m_srcInfo1(_T(""))
+	, m_srcInfo2(_T(""))
+	, m_srcInfo3(_T(""))
+	, m_bSearchSubFolders(FALSE)
+	, m_bIgnoreFilesLess(FALSE)
+	, m_iIgnoreSize(0)
+	, m_iIgnoreSizeType(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	m_bAutoRename = TRUE;
+	m_bIgnoreDuplicates = TRUE;
+	m_bSearchSubFolders = TRUE;
+	//m_srcPath(_T(""))
+	//m_dstPath(_T(""))
+	//m_dstInfo1(_T(""))
+	//m_dstInfo2(_T(""))
+	//m_dstInfo3(_T(""))
+	//m_srcInfo1(_T(""))
+	//m_srcInfo2(_T(""))
+	//m_srcInfo3(_T(""))
 }
 
 void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Check(pDX, IDC_AUTO_RENAME, m_bAutoRename);
+	//  DDX_Text(pDX, IDC_BROWSE_DST, m_srcPath);
+	DDX_Text(pDX, IDC_BROWSE_DST, m_dstPath);
+	DDX_Text(pDX, IDC_BROWSE_SRC, m_srcPath);
+	DDX_Check(pDX, IDC_IGNORE_DUPLICATES, m_bIgnoreDuplicates);
+	DDX_Text(pDX, IDC_INFO_DST_1, m_dstInfo1);
+	DDX_Text(pDX, IDC_INFO_DST_2, m_dstInfo2);
+	DDX_Text(pDX, IDC_INFO_DST_3, m_dstInfo3);
+	DDX_Text(pDX, IDC_INFO_SRC_1, m_srcInfo1);
+	DDX_Text(pDX, IDC_INFO_SRC_2, m_srcInfo2);
+	DDX_Text(pDX, IDC_INFO_SRC_3, m_srcInfo3);
+	DDX_Check(pDX, IDC_SEARCH_SUB_FOLDERS, m_bSearchSubFolders);
+	DDX_Check(pDX, IDC_IGNORE_FILES_LESS, m_bIgnoreFilesLess);
+	DDX_Text(pDX, IDC_IGNORE_SIZE, m_iIgnoreSize);
+	DDX_CBIndex(pDX, IDC_IGNORE_SIZE_COMBO, m_iIgnoreSizeType);
 }
 
 BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_FILE_TYPES, &CMediaTransfareDlg::OnClickedFileTypes)
+	ON_BN_CLICKED(IDOK, &CMediaTransfareDlg::OnBnClickedOk)
+	ON_EN_CHANGE(IDC_BROWSE_SRC, &CMediaTransfareDlg::OnChangeBrowseSrc)
+	ON_EN_CHANGE(IDC_BROWSE_DST, &CMediaTransfareDlg::OnChangeBrowseDst)
 END_MESSAGE_MAP()
 
 
@@ -154,3 +199,40 @@ HCURSOR CMediaTransfareDlg::OnQueryDragIcon()
 }
 
 
+
+
+void CMediaTransfareDlg::OnClickedFileTypes()
+{
+	// TODO: Add your control notification handler code here
+}
+
+
+void CMediaTransfareDlg::OnBnClickedOk()
+{
+	//CDialogEx::OnOK();
+
+	if (UpdateData())
+	{
+		int y = 0;
+	}
+}
+
+
+void CMediaTransfareDlg::OnChangeBrowseSrc()
+{
+	if (UpdateData())
+		UpdateControls();
+}
+
+
+void CMediaTransfareDlg::OnChangeBrowseDst()
+{
+	if (UpdateData())
+		UpdateControls();
+}
+
+
+void CMediaTransfareDlg::UpdateControls()
+{
+	GetDlgItem(IDOK)->EnableWindow(!m_srcPath.IsEmpty() && !m_dstPath.IsEmpty() && (m_srcPath != m_dstPath));
+}
