@@ -153,3 +153,4 @@ HCURSOR CMediaTransfareDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
