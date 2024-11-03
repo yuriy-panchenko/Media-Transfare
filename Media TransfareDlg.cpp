@@ -7,6 +7,7 @@
 #include "Media Transfare.h"
 #include "Media TransfareDlg.h"
 #include "afxdialogex.h"
+#include "CFileTypesDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -23,7 +24,7 @@
 #define	PRE_SOURCE_PATH	_T("SourecPath")
 #define	PRE_DESTINATION_PATH	_T("DestinationPath")
 
-
+namespace fs = std::filesystem;
 
 // CAboutDlg dialog used for App About
 
@@ -80,6 +81,8 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_iIgnoreSize(0)
 	, m_iIgnoreSizeType(0)
 	, m_bRemoveCopied(FALSE)
+	, m_bSortByMonth(FALSE)
+	, m_bSortByYear(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -102,6 +105,8 @@ void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IGNORE_SIZE, m_iIgnoreSize);
 	DDX_CBIndex(pDX, IDC_IGNORE_SIZE_COMBO, m_iIgnoreSizeType);
 	DDX_Check(pDX, IDC_REMOVE_COPIED, m_bRemoveCopied);
+	DDX_Check(pDX, IDC_SORT_BY_MONTH, m_bSortByMonth);
+	DDX_Check(pDX, IDC_SORT_BY_YEAR, m_bSortByYear);
 }
 
 BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
@@ -221,7 +226,7 @@ HCURSOR CMediaTransfareDlg::OnQueryDragIcon()
 
 void CMediaTransfareDlg::OnClickedFileTypes()
 {
-	// TODO: Add your control notification handler code here
+	CFileTypesDlg{ this }.DoModal();
 }
 
 
@@ -242,8 +247,9 @@ void CMediaTransfareDlg::OnChangeBrowseSrc()
 	{
 		UpdateControls();
 
-		if (auto pThread = ::AfxBeginThread(CollectSourceFiles, this))
-			::WaitForSingleObject(*pThread, INFINITE);
+		if (!m_srcPath.IsEmpty())
+			if (auto pThread = ::AfxBeginThread(CollectSourceFiles, this))
+				::WaitForSingleObject(*pThread, INFINITE);
 	}
 }
 
@@ -292,16 +298,61 @@ void CMediaTransfareDlg::OnDestroy()
 
 //	AFX_THREADPROC
 
+void CMediaTransfareDlg::LoadFolderFiles(CMediaTransfareDlg* pDlg, const fs::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info)
+{
+	int y = 0;
+
+	CFileStatus status;
+	for (const auto& entry : fs::directory_iterator{ dir })
+	{
+		const auto& file_path{ entry.path() };
+		if (CFile::GetStatus(file_path.c_str(), status))
+		{
+			switch (status.m_attribute)
+			{
+			case CFile::Attribute::directory:
+				if (bLoadSubFolders)
+					LoadFolderFiles(pDlg, status.m_szFullName, TRUE, info);
+				break;
+
+			case CFile::Attribute::device:
+			case CFile::Attribute::volume:
+				break;
+
+			default:
+			{
+				CSingleLock _o{ &pDlg->m_Mutex,TRUE };
+				if (pDlg->IsAcceptableExtension(CString(fs::path{ status.m_szFullName }.extension().c_str()).MakeLower()))
+					info.Add(status);
+			}
+			break;
+			}
+
+		}
+		else
+		{
+		}
+	}
+}
+
 UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
 {
-	auto pDlg=static_cast<CMediaTransfareDlg*>(pData);
+	auto pDlg = static_cast<CMediaTransfareDlg*>(pData);
 
 	CArray<CFileStatus> info;
-
-
+	LoadFolderFiles(pDlg, pDlg->m_srcPath.GetString(), pDlg->m_bSearchSubFolders, info);
 
 	CSingleLock _o(&pDlg->m_Mutex, TRUE);
 	pDlg->m_srcFiles.Copy(info);
 
 	return 0;
+}
+
+BOOL CMediaTransfareDlg::IsAcceptableExtension(const CString& ext)
+{
+	for (INT_PTR i = 0; i < m_Exensions.GetSize(); ++i)
+		if (m_Exensions[i] == ext)
+			return TRUE;
+
+	return FALSE;
 }

@@ -11,6 +11,7 @@ class CMediaTransfareDlg : public CDialogEx
 // Construction
 public:
 	CMediaTransfareDlg(CWnd* pParent = nullptr);	// standard constructor
+	BOOL IsAcceptableExtension(const CString& ext);
 
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
@@ -40,10 +41,13 @@ protected:
 
 private:
 	void UpdateControls();
+	
 	static UINT CALLBACK CollectSourceFiles(LPVOID);
+	static void LoadFolderFiles(CMediaTransfareDlg* pDlg, const std::filesystem::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info);
 
 private:
 	BOOL m_bAutoRename;
+	CString m_srcPath;
 	CString m_dstPath;
 	BOOL m_bIgnoreDuplicates;
 	CString m_dstInfo1;
@@ -57,10 +61,10 @@ private:
 	int m_iIgnoreSize;
 	int m_iIgnoreSizeType;
 	BOOL m_bRemoveCopied;
-
-public:
-	CString m_srcPath;
 	
 	CArray<CFileStatus> m_srcFiles, m_dstFiles;
+	CStringArray m_Exensions;
 	CMutex m_Mutex;
+	BOOL m_bSortByMonth;
+	BOOL m_bSortByYear;
 };

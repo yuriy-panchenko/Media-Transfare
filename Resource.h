@@ -27,8 +27,10 @@
 #define IDC_IGNORE_FILES_LESS           1016
 #define IDC_IGNORE_SIZE                 1017
 #define IDC_IGNORE_SIZE_COMBO           1018
-#define IDC_CHECK2                      1019
 #define IDC_REMOVE_COPIED               1019
+#define IDC_SORT_BY_YEAR                1020
+#define IDC_CHECK2                      1021
+#define IDC_SORT_BY_MONTH               1021
 
 // Next default values for new objects
 // 
@@ -36,7 +38,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
