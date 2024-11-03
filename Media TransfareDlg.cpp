@@ -19,10 +19,15 @@
 #define	PRE_SEARCH_SUBFOLDER	_T("SearchSubFolders")
 #define	PRE_IGNORE_FILES_LESS	_T("IgnoreFileLess")
 #define	PRE_REMOVE_COPIED	_T("RemoveCopied")
+//#define	PRE_SORT_BY_YEAR	_T("SortByYear")
+//#define	PRE_SORT_BY_MONTH	_T("SortByMonth")
+
 #define	PRE_IGNORE_SIZE	_T("FileLessSize")
 #define	PRE_IGNORE_TYPE	_T("FileLessType")
 #define	PRE_SOURCE_PATH	_T("SourecPath")
 #define	PRE_DESTINATION_PATH	_T("DestinationPath")
+
+#define FILE_EXTENSION_LIST	_T("ExtList.bin")
 
 namespace fs = std::filesystem;
 
@@ -81,8 +86,8 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_iIgnoreSize(0)
 	, m_iIgnoreSizeType(0)
 	, m_bRemoveCopied(FALSE)
-	, m_bSortByMonth(FALSE)
-	, m_bSortByYear(FALSE)
+	//, m_bSortByMonth(FALSE)
+	//, m_bSortByYear(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -105,8 +110,8 @@ void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IGNORE_SIZE, m_iIgnoreSize);
 	DDX_CBIndex(pDX, IDC_IGNORE_SIZE_COMBO, m_iIgnoreSizeType);
 	DDX_Check(pDX, IDC_REMOVE_COPIED, m_bRemoveCopied);
-	DDX_Check(pDX, IDC_SORT_BY_MONTH, m_bSortByMonth);
-	DDX_Check(pDX, IDC_SORT_BY_YEAR, m_bSortByYear);
+	//DDX_Check(pDX, IDC_SORT_BY_MONTH, m_bSortByMonth);
+	//DDX_Check(pDX, IDC_SORT_BY_YEAR, m_bSortByYear);
 }
 
 BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
@@ -119,6 +124,7 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_BROWSE_DST, &CMediaTransfareDlg::OnChangeBrowseDst)
 	ON_BN_CLICKED(IDC_IGNORE_FILES_LESS, &CMediaTransfareDlg::OnBnClickedIgnoreFilesLess)
 	ON_WM_DESTROY()
+	//ON_BN_CLICKED(IDC_SORT_BY_YEAR, &CMediaTransfareDlg::OnBnClickedSortByYear)
 END_MESSAGE_MAP()
 
 
@@ -154,6 +160,14 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
+	
+	CFile file;
+	if (file.Open(FILE_EXTENSION_LIST, CFile::modeRead | CFile::shareDenyNone))
+	{
+		CArchive ar{ &file, CArchive::load };
+		m_Extensions.Serialize(ar);
+	}
+
 	//m_srcPath = theApp.GetProfileString(PRS_SETTINGS, PRE_SOURCE_PATH);
 	//m_dstPath = theApp.GetProfileString(PRS_SETTINGS, PRE_DESTINATION_PATH);
 
@@ -161,6 +175,8 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	m_bIgnoreDuplicates = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, TRUE);
 	m_bSearchSubFolders = theApp.GetProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, TRUE);
 	m_bRemoveCopied = theApp.GetProfileInt(PRS_SETTINGS, PRE_REMOVE_COPIED, TRUE);
+	//m_bSortByYear = theApp.GetProfileInt(PRS_SETTINGS, PRE_SORT_BY_YEAR, FALSE);
+	//m_bSortByMonth = theApp.GetProfileInt(PRS_SETTINGS, PRE_SORT_BY_MONTH, FALSE);
 
 	m_bIgnoreFilesLess = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, TRUE);
 	m_iIgnoreSize = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, 200);
@@ -226,7 +242,19 @@ HCURSOR CMediaTransfareDlg::OnQueryDragIcon()
 
 void CMediaTransfareDlg::OnClickedFileTypes()
 {
-	CFileTypesDlg{ this }.DoModal();
+	CFileTypesDlg dlg{ m_Extensions, this };
+
+	if (dlg.DoModal() == IDOK)
+	{
+		m_Extensions.Copy(dlg.GetExensions());
+
+		CFile file;
+		if (file.Open(FILE_EXTENSION_LIST, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive))
+		{
+			CArchive ar{ &file, CArchive::store };
+			m_Extensions.Serialize(ar);
+		}
+	}
 }
 
 
@@ -266,6 +294,7 @@ void CMediaTransfareDlg::UpdateControls()
 	GetDlgItem(IDOK)->EnableWindow(!m_srcPath.IsEmpty() && !m_dstPath.IsEmpty() && (m_srcPath != m_dstPath));
 	GetDlgItem(IDC_IGNORE_SIZE)->EnableWindow(m_bIgnoreFilesLess);
 	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(m_bIgnoreFilesLess);
+	//GetDlgItem(IDC_SORT_BY_MONTH)->EnableWindow(m_bSortByYear);
 }
 
 
@@ -289,6 +318,8 @@ void CMediaTransfareDlg::OnDestroy()
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_DUPLICATES, m_bIgnoreDuplicates);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_SEARCH_SUBFOLDER, m_bSearchSubFolders);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_REMOVE_COPIED, m_bRemoveCopied);
+		//theApp.WriteProfileInt(PRS_SETTINGS, PRE_SORT_BY_YEAR, m_bSortByYear);
+		//theApp.WriteProfileInt(PRS_SETTINGS, PRE_SORT_BY_MONTH, m_bSortByMonth);
 
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_FILES_LESS, m_bIgnoreFilesLess);
 		theApp.WriteProfileInt(PRS_SETTINGS, PRE_IGNORE_SIZE, m_iIgnoreSize);
@@ -300,9 +331,8 @@ void CMediaTransfareDlg::OnDestroy()
 
 void CMediaTransfareDlg::LoadFolderFiles(CMediaTransfareDlg* pDlg, const fs::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info)
 {
-	int y = 0;
-
 	CFileStatus status;
+
 	for (const auto& entry : fs::directory_iterator{ dir })
 	{
 		const auto& file_path{ entry.path() };
@@ -350,9 +380,15 @@ UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
 
 BOOL CMediaTransfareDlg::IsAcceptableExtension(const CString& ext)
 {
-	for (INT_PTR i = 0; i < m_Exensions.GetSize(); ++i)
-		if (m_Exensions[i] == ext)
+	for (INT_PTR i = 0; i < m_Extensions.GetSize(); ++i)
+		if (m_Extensions[i] == ext)
 			return TRUE;
 
 	return FALSE;
+}
+
+void CMediaTransfareDlg::OnBnClickedSortByYear()
+{
+	if (UpdateData())
+		UpdateControls();
 }

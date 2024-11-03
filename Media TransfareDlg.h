@@ -37,6 +37,7 @@ protected:
 	afx_msg void OnChangeBrowseDst();
 	afx_msg void OnBnClickedIgnoreFilesLess();
 	afx_msg void OnDestroy();
+	afx_msg void OnBnClickedSortByYear();
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -63,8 +64,8 @@ private:
 	BOOL m_bRemoveCopied;
 	
 	CArray<CFileStatus> m_srcFiles, m_dstFiles;
-	CStringArray m_Exensions;
+	CStringArray m_Extensions;
 	CMutex m_Mutex;
-	BOOL m_bSortByMonth;
-	BOOL m_bSortByYear;
+	//BOOL m_bSortByMonth;
+	//BOOL m_bSortByYear;
 };

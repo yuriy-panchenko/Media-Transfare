@@ -11,15 +11,20 @@
 
 IMPLEMENT_DYNAMIC(CFileTypesDlg, CDialogEx)
 
-CFileTypesDlg::CFileTypesDlg(CWnd* pParent /*=nullptr*/)
+CFileTypesDlg::CFileTypesDlg(const CStringArray& ext, CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_FILE_TYPES_DLG, pParent)
 	, m_Extension(_T(""))
 {
-
+	m_Extensions.Copy(ext);
 }
 
 CFileTypesDlg::~CFileTypesDlg()
 {
+}
+
+const CStringArray& CFileTypesDlg::GetExensions() const
+{
+	return m_Extensions;
 }
 
 void CFileTypesDlg::DoDataExchange(CDataExchange* pDX)
@@ -35,6 +40,7 @@ BEGIN_MESSAGE_MAP(CFileTypesDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_EXT_REMOVE, &CFileTypesDlg::OnClickedExtRemove)
 	ON_EN_CHANGE(IDC_EXT_EDIT, &CFileTypesDlg::OnEnChangeExtEdit)
 	ON_LBN_SELCHANGE(IDC_EXT_LIST, &CFileTypesDlg::OnLbnSelchangeExtList)
+	ON_BN_CLICKED(IDOK, &CFileTypesDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
 
@@ -45,6 +51,9 @@ void CFileTypesDlg::OnClickedExtAdd()
 {
 	if (UpdateData())
 	{
+		if (m_Extension[0] != _T('.'))
+			m_Extension.Insert(0, _T('.'));
+
 		if (!Exist(m_Extension))
 		{
 			m_extList.AddString(m_Extension.MakeLower());
@@ -55,6 +64,16 @@ void CFileTypesDlg::OnClickedExtAdd()
 	}
 }
 
+/*
+3gp
+bmp
+gif
+jpeg
+jpg
+mp4
+png
+webp
+*/
 
 void CFileTypesDlg::OnClickedExtRemove()
 {
@@ -64,18 +83,14 @@ void CFileTypesDlg::OnClickedExtRemove()
 
 void CFileTypesDlg::OnEnChangeExtEdit()
 {
-	// TODO:  If this is a RICHEDIT control, the control will not
-	// send this notification unless you override the CDialogEx::OnInitDialog()
-	// function and call CRichEditCtrl().SetEventMask()
-	// with the ENM_CHANGE flag ORed into the mask.
-
-	// TODO:  Add your control notification handler code here
+	if (UpdateData())
+		UpdateControls();
 }
 
 
 void CFileTypesDlg::OnLbnSelchangeExtList()
 {
-	// TODO: Add your control notification handler code here
+	UpdateControls();
 }
 
 void CFileTypesDlg::UpdateControls()
@@ -86,5 +101,36 @@ void CFileTypesDlg::UpdateControls()
 
 BOOL CFileTypesDlg::Exist(const CString& ext) const
 {
-	return static_cast<CMediaTransfareDlg*>(GetParent())->IsAcceptableExtension(ext);
+	for (int i = 0; i < m_Extensions.GetSize(); ++i)
+		if (m_Extensions[i] == ext)
+			return TRUE;
+
+	return FALSE;
+}
+
+
+BOOL CFileTypesDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+
+	for (INT_PTR i = 0; i < m_Extensions.GetSize(); ++i)
+		m_extList.AddString(m_Extensions[i]);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
+}
+
+
+void CFileTypesDlg::OnBnClickedOk()
+{
+	m_Extensions.RemoveAll();
+	CString str;
+
+	for (int i = 0; i < m_extList.GetCount(); ++i)
+	{
+		m_extList.GetText(i, str);
+		m_Extensions.Add(str);
+	}
+
+	CDialogEx::OnOK();
 }

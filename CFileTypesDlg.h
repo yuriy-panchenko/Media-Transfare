@@ -9,8 +9,9 @@ class CFileTypesDlg : public CDialogEx
 	DECLARE_DYNAMIC(CFileTypesDlg)
 
 public:
-	CFileTypesDlg(CWnd* pParent = nullptr);   // standard constructor
+	CFileTypesDlg(const CStringArray& ext, CWnd* pParent = nullptr);   // standard constructor
 	virtual ~CFileTypesDlg();
+	const CStringArray& GetExensions()const;
 
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
@@ -33,4 +34,8 @@ private:
 private:
 	CString m_Extension;
 	CListBox m_extList;
+	CStringArray m_Extensions;
+public:
+	virtual BOOL OnInitDialog();
+	afx_msg void OnBnClickedOk();
 };
