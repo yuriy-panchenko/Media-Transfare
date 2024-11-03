@@ -44,6 +44,7 @@ private:
 	void UpdateControls();
 	
 	static UINT CALLBACK CollectSourceFiles(LPVOID);
+	static UINT CALLBACK CollectDestinationFiles(LPVOID);
 	static void LoadFolderFiles(CMediaTransfareDlg* pDlg, const std::filesystem::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info);
 
 private:
@@ -68,4 +69,6 @@ private:
 	CMutex m_Mutex;
 	//BOOL m_bSortByMonth;
 	//BOOL m_bSortByYear;
+public:
+	afx_msg void OnBnClickedSearchSubFolders();
 };

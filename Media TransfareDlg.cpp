@@ -31,6 +31,48 @@
 
 namespace fs = std::filesystem;
 
+void InsertComas(CString& str)
+{
+	auto index{ str.GetLength() - 3 };
+	while (index > 0)
+	{
+		str.Insert(index, _T(','));
+		index -= 3;
+	}
+}
+
+CString ReadableFormat(size_t len)
+{
+	//	0 bytes, 1 KB, 2 MB, 3 GB, 4 TB
+
+	int curr_range{ 0 };
+	auto db{ (double)len };
+
+	do
+	{
+		if (len < 999)
+			break;
+
+		db = (double)len;
+		db /= 1024;
+		len >>= 10;
+		++curr_range;
+	} while (curr_range < 4);
+
+	CString ret;
+
+	switch (curr_range)
+	{
+	case 0:ret.Format(_T("%.0f bytes"), db); break;
+	case 1:ret.Format(_T("%.2f KB"), db); break;
+	case 2:ret.Format(_T("%.2f MB"), db); break;
+	case 3:ret.Format(_T("%.2f GB"), db); break;
+	default:ret.Format(_T("%.2f TB"), db); break;
+	}
+
+	return ret;
+}
+
 // CAboutDlg dialog used for App About
 
 class CAboutDlg : public CDialogEx
@@ -125,6 +167,7 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_IGNORE_FILES_LESS, &CMediaTransfareDlg::OnBnClickedIgnoreFilesLess)
 	ON_WM_DESTROY()
 	//ON_BN_CLICKED(IDC_SORT_BY_YEAR, &CMediaTransfareDlg::OnBnClickedSortByYear)
+	ON_BN_CLICKED(IDC_SEARCH_SUB_FOLDERS, &CMediaTransfareDlg::OnBnClickedSearchSubFolders)
 END_MESSAGE_MAP()
 
 
@@ -160,7 +203,7 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-	
+
 	CFile file;
 	if (file.Open(FILE_EXTENSION_LIST, CFile::modeRead | CFile::shareDenyNone))
 	{
@@ -278,6 +321,19 @@ void CMediaTransfareDlg::OnChangeBrowseSrc()
 		if (!m_srcPath.IsEmpty())
 			if (auto pThread = ::AfxBeginThread(CollectSourceFiles, this))
 				::WaitForSingleObject(*pThread, INFINITE);
+
+		m_srcInfo1.Format(_T("Found %d media files"), m_srcFiles.GetSize());
+
+		size_t total_size{};
+
+		for (INT_PTR i = 0; i < m_srcFiles.GetSize(); ++i)
+			total_size += m_srcFiles[i].m_size;
+
+		m_srcInfo2.Format(_T("%I64u"), total_size);
+		InsertComas(m_srcInfo2);
+		m_srcInfo2 = _T("TotalSize = ") + ReadableFormat(total_size) + _T(" (") + m_srcInfo2 + _T(" bytes)");
+
+		UpdateData(FALSE);
 	}
 }
 
@@ -286,6 +342,23 @@ void CMediaTransfareDlg::OnChangeBrowseDst()
 {
 	if (UpdateData())
 		UpdateControls();
+
+	if (!m_dstPath.IsEmpty())
+		if (auto pThread = ::AfxBeginThread(CollectDestinationFiles, this))
+			::WaitForSingleObject(*pThread, INFINITE);
+
+	m_dstInfo1.Format(_T("Found %d media files"), m_dstFiles.GetSize());
+
+	size_t total_size{};
+
+	for (INT_PTR i = 0; i < m_dstFiles.GetSize(); ++i)
+		total_size += m_dstFiles[i].m_size;
+
+	m_dstInfo2.Format(_T("%I64u"), total_size);
+	InsertComas(m_dstInfo2);
+	m_dstInfo2 = _T("TotalSize = ") + ReadableFormat(total_size) + _T(" (") + m_dstInfo2 + _T(" bytes)");
+
+	UpdateData(FALSE);
 }
 
 
@@ -378,6 +451,19 @@ UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
 	return 0;
 }
 
+UINT CMediaTransfareDlg::CollectDestinationFiles(LPVOID pData)
+{
+	auto pDlg = static_cast<CMediaTransfareDlg*>(pData);
+
+	CArray<CFileStatus> info;
+	LoadFolderFiles(pDlg, pDlg->m_dstPath.GetString(), FALSE, info);
+
+	CSingleLock _o(&pDlg->m_Mutex, TRUE);
+	pDlg->m_dstFiles.Copy(info);
+
+	return 0;
+}
+
 BOOL CMediaTransfareDlg::IsAcceptableExtension(const CString& ext)
 {
 	for (INT_PTR i = 0; i < m_Extensions.GetSize(); ++i)
@@ -391,4 +477,11 @@ void CMediaTransfareDlg::OnBnClickedSortByYear()
 {
 	if (UpdateData())
 		UpdateControls();
+}
+
+
+void CMediaTransfareDlg::OnBnClickedSearchSubFolders()
+{
+	if (UpdateData() && !m_srcPath.IsEmpty())
+		OnChangeBrowseSrc();
 }
