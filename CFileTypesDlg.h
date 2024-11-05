@@ -30,6 +30,7 @@ protected:
 private:
 	void UpdateControls();
 	BOOL Exist(const CString&)const;
+	INT_PTR FindExtension(const CString&)const;
 
 private:
 	CString m_Extension;

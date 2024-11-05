@@ -60,6 +60,7 @@ void CFileTypesDlg::OnClickedExtAdd()
 			m_Extension.Empty();
 			UpdateData(FALSE);
 			UpdateControls();
+			GetDlgItem(IDOK)->EnableWindow();
 		}
 	}
 }
@@ -77,7 +78,16 @@ webp
 
 void CFileTypesDlg::OnClickedExtRemove()
 {
-	// TODO: Add your control notification handler code here
+	const auto iSel{ m_extList.GetCurSel() };
+	ASSERT(iSel > -1);
+	CString str;
+	m_extList.GetText(iSel, str);
+	const auto iIndex{ FindExtension(str) };
+	ASSERT(iIndex > -1);
+	
+	m_extList.DeleteString(iSel);
+	m_Extensions.RemoveAt(iIndex);
+	GetDlgItem(IDOK)->EnableWindow();
 }
 
 
@@ -101,13 +111,17 @@ void CFileTypesDlg::UpdateControls()
 
 BOOL CFileTypesDlg::Exist(const CString& ext) const
 {
-	for (int i = 0; i < m_Extensions.GetSize(); ++i)
-		if (m_Extensions[i] == ext)
-			return TRUE;
-
-	return FALSE;
+	return FindExtension(ext) > -1;
 }
 
+INT_PTR CFileTypesDlg::FindExtension(const CString& ext) const
+{
+	for (INT_PTR i = 0; i < m_Extensions.GetSize(); ++i)
+		if (m_Extensions[i] == ext)
+			return i;
+
+	return -1;
+}
 
 BOOL CFileTypesDlg::OnInitDialog()
 {

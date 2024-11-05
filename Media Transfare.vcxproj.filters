@@ -36,6 +36,9 @@
     <ClInclude Include="CFileTypesDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CCopyFileThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Media Transfare.cpp">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CFileTypesDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CCopyFileThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

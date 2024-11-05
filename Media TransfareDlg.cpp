@@ -29,6 +29,11 @@
 
 #define FILE_EXTENSION_LIST	_T("ExtList.bin")
 
+#ifdef _DEBUG
+#define _DEBUG_TEST
+#endif // _DEBUG
+
+
 namespace fs = std::filesystem;
 
 void InsertComas(CString& str)
@@ -132,6 +137,12 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	//, m_bSortByYear(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+#ifdef _DEBUG_TEST
+	m_srcPath = _T("D:\\Test\\src");
+	m_dstPath = _T("D:\\Test\\dst");
+#endif // _DEBUG_TEST
+
 }
 
 void CMediaTransfareDlg::DoDataExchange(CDataExchange* pDX)
@@ -168,6 +179,8 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_WM_DESTROY()
 	//ON_BN_CLICKED(IDC_SORT_BY_YEAR, &CMediaTransfareDlg::OnBnClickedSortByYear)
 	ON_BN_CLICKED(IDC_SEARCH_SUB_FOLDERS, &CMediaTransfareDlg::OnBnClickedSearchSubFolders)
+	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDCANCEL, &CMediaTransfareDlg::OnBnClickedCancel)
 END_MESSAGE_MAP()
 
 
@@ -226,6 +239,10 @@ BOOL CMediaTransfareDlg::OnInitDialog()
 	m_iIgnoreSizeType = theApp.GetProfileInt(PRS_SETTINGS, PRE_IGNORE_TYPE, 1);
 
 	UpdateData(FALSE);
+#ifdef _DEBUG_TEST
+	OnChangeBrowseSrc();
+	OnChangeBrowseDst();
+#endif // _DEBUG_TEST
 	UpdateControls();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -280,9 +297,6 @@ HCURSOR CMediaTransfareDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
-
 void CMediaTransfareDlg::OnClickedFileTypes()
 {
 	CFileTypesDlg dlg{ m_Extensions, this };
@@ -299,18 +313,6 @@ void CMediaTransfareDlg::OnClickedFileTypes()
 		}
 	}
 }
-
-
-void CMediaTransfareDlg::OnBnClickedOk()
-{
-	//CDialogEx::OnOK();
-
-	if (UpdateData())
-	{
-		int y = 0;
-	}
-}
-
 
 void CMediaTransfareDlg::OnChangeBrowseSrc()
 {
@@ -336,7 +338,6 @@ void CMediaTransfareDlg::OnChangeBrowseSrc()
 		UpdateData(FALSE);
 	}
 }
-
 
 void CMediaTransfareDlg::OnChangeBrowseDst()
 {
@@ -368,6 +369,43 @@ void CMediaTransfareDlg::UpdateControls()
 	GetDlgItem(IDC_IGNORE_SIZE)->EnableWindow(m_bIgnoreFilesLess);
 	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(m_bIgnoreFilesLess);
 	//GetDlgItem(IDC_SORT_BY_MONTH)->EnableWindow(m_bSortByYear);
+}
+
+BOOL CMediaTransfareDlg::IsBusy() const
+{
+	return !m_Threads.IsEmpty();
+}
+
+void CMediaTransfareDlg::ShutDownWorkingThreads()
+{
+	ASSERT(IsBusy());
+	std::vector<HANDLE> Hs(m_Threads.GetSize());
+
+	for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
+	{
+		auto pTh{ m_Threads[i] };
+		Hs[i] = *pTh;
+		pTh->PostThreadMessage(WM_QUIT, 0, 0);
+	}
+
+	::WaitForMultipleObjects((DWORD)Hs.size(), Hs.data(), TRUE, INFINITE);
+
+	m_Threads.RemoveAll();
+}
+
+void CMediaTransfareDlg::EnableControls(BOOL bEnable)
+{
+	GetDlgItem(IDC_BROWSE_SRC)->EnableWindow(bEnable);
+	GetDlgItem(IDC_BROWSE_DST)->EnableWindow(bEnable);
+	GetDlgItem(IDC_AUTO_RENAME)->EnableWindow(bEnable);
+	GetDlgItem(IDC_SEARCH_SUB_FOLDERS)->EnableWindow(bEnable);
+	GetDlgItem(IDC_IGNORE_DUPLICATES)->EnableWindow(bEnable);
+	GetDlgItem(IDC_REMOVE_COPIED)->EnableWindow(bEnable);
+	GetDlgItem(IDC_IGNORE_FILES_LESS)->EnableWindow(bEnable);
+	GetDlgItem(IDC_IGNORE_SIZE)->EnableWindow(bEnable);
+	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(bEnable);
+	GetDlgItem(IDC_FILE_TYPES)->EnableWindow(bEnable);
+	GetDlgItem(IDOK)->EnableWindow(bEnable);
 }
 
 
@@ -484,4 +522,54 @@ void CMediaTransfareDlg::OnBnClickedSearchSubFolders()
 {
 	if (UpdateData() && !m_srcPath.IsEmpty())
 		OnChangeBrowseSrc();
+}
+
+
+void CMediaTransfareDlg::OnClose()
+{
+	if (!IsBusy())
+		CDialogEx::OnClose();
+}
+
+
+void CMediaTransfareDlg::OnBnClickedCancel()
+{
+	if (IsBusy())
+	{
+		ShutDownWorkingThreads();
+		EnableControls();
+		UpdateControls();
+		GetDlgItem(IDCANCEL)->SetWindowText(_T("Cancel"));
+	}
+	else
+		CDialogEx::OnCancel();
+}
+
+void CMediaTransfareDlg::OnBnClickedOk()
+{
+	//CDialogEx::OnOK();
+
+	ASSERT(!IsBusy());
+
+	if (UpdateData())
+	{
+		//	StartWorkingThreads
+		SYSTEM_INFO si;
+		::GetSystemInfo(&si);
+		ASSERT(si.dwNumberOfProcessors);
+
+		for (DWORD i = 0; i < si.dwNumberOfProcessors; ++i)
+			if (auto pTh{ (CCopyFileThread*)::AfxBeginThread(RUNTIME_CLASS(CCopyFileThread), 0, 0, CREATE_SUSPENDED) })
+			{
+				//pTh->m_srcFile=
+				//pTh->m_dstFolder=
+				m_Threads.Add(pTh);
+			}
+
+		for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
+			m_Threads[i]->ResumeThread();
+
+		EnableControls(FALSE);
+		GetDlgItem(IDCANCEL)->SetWindowText(_T("Stop"));
+	}
 }

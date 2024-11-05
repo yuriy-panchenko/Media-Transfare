@@ -3,7 +3,7 @@
 //
 
 #pragma once
-
+#include "CCopyFileThread.h"
 
 // CMediaTransfareDlg dialog
 class CMediaTransfareDlg : public CDialogEx
@@ -38,10 +38,16 @@ protected:
 	afx_msg void OnBnClickedIgnoreFilesLess();
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedSortByYear();
+	afx_msg void OnBnClickedSearchSubFolders();
+	afx_msg void OnClose();
+	afx_msg void OnBnClickedCancel();
 	DECLARE_MESSAGE_MAP()
 
 private:
 	void UpdateControls();
+	BOOL IsBusy()const;
+	void ShutDownWorkingThreads();
+	void EnableControls(BOOL bEnable = TRUE);
 	
 	static UINT CALLBACK CollectSourceFiles(LPVOID);
 	static UINT CALLBACK CollectDestinationFiles(LPVOID);
@@ -69,6 +75,5 @@ private:
 	CMutex m_Mutex;
 	//BOOL m_bSortByMonth;
 	//BOOL m_bSortByYear;
-public:
-	afx_msg void OnBnClickedSearchSubFolders();
+	CTypedPtrArray<CPtrArray, CCopyFileThread*> m_Threads;
 };
