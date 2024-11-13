@@ -4,7 +4,7 @@
 #include "pch.h"
 #include "Media Transfare.h"
 #include "CCopyFileThread.h"
-
+#include "Media TransfareDlg.h"
 
 // CCopyFileThread
 
@@ -12,6 +12,7 @@ IMPLEMENT_DYNCREATE(CCopyFileThread, CWinThread)
 
 CCopyFileThread::CCopyFileThread()
 {
+	m_pMainDlg = (CMediaTransfareDlg*)theApp.GetMainWnd();
 }
 
 CCopyFileThread::~CCopyFileThread()

@@ -48,10 +48,13 @@ private:
 	BOOL IsBusy()const;
 	void ShutDownWorkingThreads();
 	void EnableControls(BOOL bEnable = TRUE);
+	void SetNextCopyFile();
 	
 	static UINT CALLBACK CollectSourceFiles(LPVOID);
 	static UINT CALLBACK CollectDestinationFiles(LPVOID);
 	static void LoadFolderFiles(CMediaTransfareDlg* pDlg, const std::filesystem::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info);
+	static void InsertComas(CString& str);
+	static CString ReadableFormat(size_t len);
 
 private:
 	BOOL m_bAutoRename;
@@ -75,5 +78,7 @@ private:
 	CMutex m_Mutex;
 	//BOOL m_bSortByMonth;
 	//BOOL m_bSortByYear;
-	CTypedPtrArray<CPtrArray, CCopyFileThread*> m_Threads;
+	//CTypedPtrArray<CPtrArray, CCopyFileThread*> m_Threads;
+	CCopyFileThread* m_pCopyThread;
+	INT_PTR m_iNextFile;
 };

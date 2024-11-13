@@ -18,6 +18,12 @@ public:
 
 protected:
 	DECLARE_MESSAGE_MAP()
+
+public:
+	fs::path m_srcFile, m_dstFolder;
+
+private:
+	CDialogEx* m_pMainDlg;
 };
 
 

@@ -11,4 +11,6 @@
 #include "framework.h"
 #include <filesystem>
 
+namespace fs = std::filesystem;
+
 #endif //PCH_H

@@ -33,10 +33,7 @@
 #define _DEBUG_TEST
 #endif // _DEBUG
 
-
-namespace fs = std::filesystem;
-
-void InsertComas(CString& str)
+void CMediaTransfareDlg::InsertComas(CString& str)
 {
 	auto index{ str.GetLength() - 3 };
 	while (index > 0)
@@ -46,7 +43,7 @@ void InsertComas(CString& str)
 	}
 }
 
-CString ReadableFormat(size_t len)
+CString CMediaTransfareDlg::ReadableFormat(size_t len)
 {
 	//	0 bytes, 1 KB, 2 MB, 3 GB, 4 TB
 
@@ -133,6 +130,8 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_iIgnoreSize(0)
 	, m_iIgnoreSizeType(0)
 	, m_bRemoveCopied(FALSE)
+	, m_pCopyThread{ nullptr }
+	, m_iNextFile{}
 	//, m_bSortByMonth(FALSE)
 	//, m_bSortByYear(FALSE)
 {
@@ -373,24 +372,27 @@ void CMediaTransfareDlg::UpdateControls()
 
 BOOL CMediaTransfareDlg::IsBusy() const
 {
-	return !m_Threads.IsEmpty();
+	return m_pCopyThread != nullptr;
 }
 
 void CMediaTransfareDlg::ShutDownWorkingThreads()
 {
 	ASSERT(IsBusy());
-	std::vector<HANDLE> Hs(m_Threads.GetSize());
+	//std::vector<HANDLE> Hs(m_Threads.GetSize());
 
-	for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
+	/*for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
 	{
 		auto pTh{ m_Threads[i] };
 		Hs[i] = *pTh;
 		pTh->PostThreadMessage(WM_QUIT, 0, 0);
-	}
+	}*/
+	m_pCopyThread->PostThreadMessage(WM_QUIT, 0, 0);
 
-	::WaitForMultipleObjects((DWORD)Hs.size(), Hs.data(), TRUE, INFINITE);
+	//::WaitForMultipleObjects((DWORD)Hs.size(), Hs.data(), TRUE, INFINITE);
+	::WaitForSingleObject(*m_pCopyThread, INFINITE);
 
-	m_Threads.RemoveAll();
+	//m_Threads.RemoveAll();
+	m_pCopyThread = nullptr;
 }
 
 void CMediaTransfareDlg::EnableControls(BOOL bEnable)
@@ -406,6 +408,11 @@ void CMediaTransfareDlg::EnableControls(BOOL bEnable)
 	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(bEnable);
 	GetDlgItem(IDC_FILE_TYPES)->EnableWindow(bEnable);
 	GetDlgItem(IDOK)->EnableWindow(bEnable);
+}
+
+void CMediaTransfareDlg::SetNextCopyFile()
+{
+	if()
 }
 
 
@@ -547,27 +554,17 @@ void CMediaTransfareDlg::OnBnClickedCancel()
 
 void CMediaTransfareDlg::OnBnClickedOk()
 {
-	//CDialogEx::OnOK();
-
 	ASSERT(!IsBusy());
 
 	if (UpdateData())
 	{
-		//	StartWorkingThreads
-		SYSTEM_INFO si;
-		::GetSystemInfo(&si);
-		ASSERT(si.dwNumberOfProcessors);
-
-		for (DWORD i = 0; i < si.dwNumberOfProcessors; ++i)
-			if (auto pTh{ (CCopyFileThread*)::AfxBeginThread(RUNTIME_CLASS(CCopyFileThread), 0, 0, CREATE_SUSPENDED) })
-			{
-				//pTh->m_srcFile=
-				//pTh->m_dstFolder=
-				m_Threads.Add(pTh);
-			}
-
-		for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
-			m_Threads[i]->ResumeThread();
+		if (m_pCopyThread = (CCopyFileThread*)::AfxBeginThread(RUNTIME_CLASS(CCopyFileThread), 0, 0, CREATE_SUSPENDED))
+		{
+			m_iNextFile = 0;
+			m_pCopyThread->m_dstFolder = m_dstPath.GetString();
+			SetNextCopyFile();
+			m_pCopyThread->ResumeThread();
+		}
 
 		EnableControls(FALSE);
 		GetDlgItem(IDCANCEL)->SetWindowText(_T("Stop"));
