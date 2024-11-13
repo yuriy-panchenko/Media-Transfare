@@ -130,10 +130,6 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	, m_iIgnoreSize(0)
 	, m_iIgnoreSizeType(0)
 	, m_bRemoveCopied(FALSE)
-	, m_pCopyThread{ nullptr }
-	, m_iNextFile{}
-	//, m_bSortByMonth(FALSE)
-	//, m_bSortByYear(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
@@ -180,7 +176,6 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SEARCH_SUB_FOLDERS, &CMediaTransfareDlg::OnBnClickedSearchSubFolders)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDCANCEL, &CMediaTransfareDlg::OnBnClickedCancel)
-	ON_MESSAGE(WM_NEXT_FILE_FINISHED, OnNextFileFinished)
 END_MESSAGE_MAP()
 
 
@@ -371,31 +366,6 @@ void CMediaTransfareDlg::UpdateControls()
 	//GetDlgItem(IDC_SORT_BY_MONTH)->EnableWindow(m_bSortByYear);
 }
 
-BOOL CMediaTransfareDlg::IsBusy() const
-{
-	return m_pCopyThread != nullptr;
-}
-
-void CMediaTransfareDlg::ShutDownWorkingThreads()
-{
-	ASSERT(IsBusy());
-	//std::vector<HANDLE> Hs(m_Threads.GetSize());
-
-	/*for (INT_PTR i = 0; i < m_Threads.GetSize(); ++i)
-	{
-		auto pTh{ m_Threads[i] };
-		Hs[i] = *pTh;
-		pTh->PostThreadMessage(WM_QUIT, 0, 0);
-	}*/
-	m_pCopyThread->PostThreadMessage(WM_QUIT, 0, 0);
-
-	//::WaitForMultipleObjects((DWORD)Hs.size(), Hs.data(), TRUE, INFINITE);
-	::WaitForSingleObject(*m_pCopyThread, INFINITE);
-
-	//m_Threads.RemoveAll();
-	m_pCopyThread = nullptr;
-}
-
 void CMediaTransfareDlg::EnableControls(BOOL bEnable)
 {
 	GetDlgItem(IDC_BROWSE_SRC)->EnableWindow(bEnable);
@@ -410,24 +380,6 @@ void CMediaTransfareDlg::EnableControls(BOOL bEnable)
 	GetDlgItem(IDC_FILE_TYPES)->EnableWindow(bEnable);
 	GetDlgItem(IDOK)->EnableWindow(bEnable);
 }
-
-void CMediaTransfareDlg::SetNextCopyFile()
-{
-	ASSERT(m_pCopyThread);
-
-	if (m_iNextFile == m_srcFiles.GetSize())
-	{
-		OnBnClickedCancel();
-	}
-	else
-	{
-		memcpy(&m_pCopyThread->m_fileStatus, &m_srcFiles[m_iNextFile], sizeof CFileStatus);
-		++m_iNextFile;
-
-		m_pCopyThread->PostThreadMessage(WM_NEXT_FILE, 0, 0);
-	}
-}
-
 
 void CMediaTransfareDlg::OnBnClickedIgnoreFilesLess()
 {
@@ -482,7 +434,6 @@ void CMediaTransfareDlg::LoadFolderFiles(CMediaTransfareDlg* pDlg, const fs::pat
 
 			default:
 			{
-				CSingleLock _o{ &pDlg->m_Mutex,TRUE };
 				if (pDlg->IsAcceptableExtension(CString(fs::path{ status.m_szFullName }.extension().c_str()).MakeLower()))
 					info.Add(status);
 			}
@@ -503,7 +454,6 @@ UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
 	CArray<CFileStatus> info;
 	LoadFolderFiles(pDlg, pDlg->m_srcPath.GetString(), pDlg->m_bSearchSubFolders, info);
 
-	CSingleLock _o(&pDlg->m_Mutex, TRUE);
 	pDlg->m_srcFiles.Copy(info);
 
 	return 0;
@@ -516,7 +466,6 @@ UINT CMediaTransfareDlg::CollectDestinationFiles(LPVOID pData)
 	CArray<CFileStatus> info;
 	LoadFolderFiles(pDlg, pDlg->m_dstPath.GetString(), FALSE, info);
 
-	CSingleLock _o(&pDlg->m_Mutex, TRUE);
 	pDlg->m_dstFiles.Copy(info);
 
 	return 0;
@@ -547,47 +496,29 @@ void CMediaTransfareDlg::OnBnClickedSearchSubFolders()
 
 void CMediaTransfareDlg::OnClose()
 {
-	if (!IsBusy())
-		CDialogEx::OnClose();
+	//if (!IsBusy())
+	CDialogEx::OnClose();
 }
 
 
 void CMediaTransfareDlg::OnBnClickedCancel()
 {
-	if (IsBusy())
-	{
-		ShutDownWorkingThreads();
-		EnableControls();
-		UpdateControls();
-		GetDlgItem(IDCANCEL)->SetWindowText(_T("Cancel"));
-	}
-	else
-		CDialogEx::OnCancel();
-}
-
-LRESULT CMediaTransfareDlg::OnNextFileFinished(WPARAM, LPARAM)
-{
-	SetNextCopyFile();
-
-	return LRESULT();
+	//if (IsBusy())
+	//{
+	//	ShutDownWorkingThreads();
+	//	EnableControls();
+	//	UpdateControls();
+	//	GetDlgItem(IDCANCEL)->SetWindowText(_T("Cancel"));
+	//}
+	//else
+	CDialogEx::OnCancel();
 }
 
 void CMediaTransfareDlg::OnBnClickedOk()
 {
-	ASSERT(!IsBusy());
-
+	BeginWaitCursor();
 	if (UpdateData())
 	{
-		if (m_pCopyThread = (CCopyFileThread*)::AfxBeginThread(RUNTIME_CLASS(CCopyFileThread), 0, 0, CREATE_SUSPENDED))
-		{
-			m_iNextFile = 0;
-			m_pCopyThread->m_srcFolder = m_srcPath.GetString();
-			m_pCopyThread->m_dstFolder = m_dstPath.GetString();
-			SetNextCopyFile();
-			m_pCopyThread->ResumeThread();
-		}
-
-		EnableControls(FALSE);
-		GetDlgItem(IDCANCEL)->SetWindowText(_T("Stop"));
 	}
+	EndWaitCursor();
 }

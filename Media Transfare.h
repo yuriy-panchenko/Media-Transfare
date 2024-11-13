@@ -10,12 +10,6 @@
 
 #include "resource.h"		// main symbols
 
-#define WM_NEXT_FILE			(WM_APP + 0x0001)
-
-#define WM_NEXT_FILE_FINISHED	(WM_USER + 0x0001)
-
-
-
 // CMediaTransfareApp:
 // See Media Transfare.cpp for the implementation of this class
 //
