@@ -138,8 +138,8 @@ CMediaTransfareDlg::CMediaTransfareDlg(CWnd* pParent /*=nullptr*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 #ifdef _DEBUG_TEST
-	m_srcPath = _T("D:\\Test\\src");
-	m_dstPath = _T("D:\\Test\\dst");
+	m_srcPath = _T("D:\\Temp\\Test\\src");
+	m_dstPath = _T("D:\\Temp\\Test\\dst");
 #endif // _DEBUG_TEST
 
 }
@@ -180,6 +180,7 @@ BEGIN_MESSAGE_MAP(CMediaTransfareDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SEARCH_SUB_FOLDERS, &CMediaTransfareDlg::OnBnClickedSearchSubFolders)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDCANCEL, &CMediaTransfareDlg::OnBnClickedCancel)
+	ON_MESSAGE(WM_NEXT_FILE_FINISHED, OnNextFileFinished)
 END_MESSAGE_MAP()
 
 
@@ -364,7 +365,7 @@ void CMediaTransfareDlg::OnChangeBrowseDst()
 
 void CMediaTransfareDlg::UpdateControls()
 {
-	GetDlgItem(IDOK)->EnableWindow(!m_srcPath.IsEmpty() && !m_dstPath.IsEmpty() && (m_srcPath != m_dstPath));
+	GetDlgItem(IDOK)->EnableWindow(!m_srcPath.IsEmpty() && !m_dstPath.IsEmpty() && (m_srcPath != m_dstPath) && !m_srcFiles.IsEmpty());
 	GetDlgItem(IDC_IGNORE_SIZE)->EnableWindow(m_bIgnoreFilesLess);
 	GetDlgItem(IDC_IGNORE_SIZE_COMBO)->EnableWindow(m_bIgnoreFilesLess);
 	//GetDlgItem(IDC_SORT_BY_MONTH)->EnableWindow(m_bSortByYear);
@@ -412,7 +413,19 @@ void CMediaTransfareDlg::EnableControls(BOOL bEnable)
 
 void CMediaTransfareDlg::SetNextCopyFile()
 {
-	if()
+	ASSERT(m_pCopyThread);
+
+	if (m_iNextFile == m_srcFiles.GetSize())
+	{
+		OnBnClickedCancel();
+	}
+	else
+	{
+		memcpy(&m_pCopyThread->m_fileStatus, &m_srcFiles[m_iNextFile], sizeof CFileStatus);
+		++m_iNextFile;
+
+		m_pCopyThread->PostThreadMessage(WM_NEXT_FILE, 0, 0);
+	}
 }
 
 
@@ -552,6 +565,13 @@ void CMediaTransfareDlg::OnBnClickedCancel()
 		CDialogEx::OnCancel();
 }
 
+LRESULT CMediaTransfareDlg::OnNextFileFinished(WPARAM, LPARAM)
+{
+	SetNextCopyFile();
+
+	return LRESULT();
+}
+
 void CMediaTransfareDlg::OnBnClickedOk()
 {
 	ASSERT(!IsBusy());
@@ -561,6 +581,7 @@ void CMediaTransfareDlg::OnBnClickedOk()
 		if (m_pCopyThread = (CCopyFileThread*)::AfxBeginThread(RUNTIME_CLASS(CCopyFileThread), 0, 0, CREATE_SUSPENDED))
 		{
 			m_iNextFile = 0;
+			m_pCopyThread->m_srcFolder = m_srcPath.GetString();
 			m_pCopyThread->m_dstFolder = m_dstPath.GetString();
 			SetNextCopyFile();
 			m_pCopyThread->ResumeThread();

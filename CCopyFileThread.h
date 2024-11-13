@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 // CCopyFileThread
 
 class CCopyFileThread : public CWinThread
@@ -17,10 +15,12 @@ public:
 	virtual int ExitInstance();
 
 protected:
+	afx_msg void OnNextFile(WPARAM, LPARAM);
 	DECLARE_MESSAGE_MAP()
 
 public:
-	fs::path m_srcFile, m_dstFolder;
+	fs::path m_dstFolder, m_srcFolder;
+	CFileStatus m_fileStatus;
 
 private:
 	CDialogEx* m_pMainDlg;

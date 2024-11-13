@@ -5,10 +5,15 @@
 #pragma once
 
 #ifndef __AFXWIN_H__
-	#error "include 'pch.h' before including this file for PCH"
+#error "include 'pch.h' before including this file for PCH"
 #endif
 
 #include "resource.h"		// main symbols
+
+#define WM_NEXT_FILE			(WM_APP + 0x0001)
+
+#define WM_NEXT_FILE_FINISHED	(WM_USER + 0x0001)
+
 
 
 // CMediaTransfareApp:
@@ -20,11 +25,11 @@ class CMediaTransfareApp : public CWinApp
 public:
 	CMediaTransfareApp();
 
-// Overrides
+	// Overrides
 public:
 	virtual BOOL InitInstance();
 
-// Implementation
+	// Implementation
 
 	DECLARE_MESSAGE_MAP()
 };

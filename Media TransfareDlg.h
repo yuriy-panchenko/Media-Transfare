@@ -41,6 +41,7 @@ protected:
 	afx_msg void OnBnClickedSearchSubFolders();
 	afx_msg void OnClose();
 	afx_msg void OnBnClickedCancel();
+	afx_msg LRESULT OnNextFileFinished(WPARAM,LPARAM);
 	DECLARE_MESSAGE_MAP()
 
 private:

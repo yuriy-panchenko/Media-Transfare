@@ -31,7 +31,15 @@ int CCopyFileThread::ExitInstance()
 	return CWinThread::ExitInstance();
 }
 
+void CCopyFileThread::OnNextFile(WPARAM, LPARAM)
+{
+
+
+	m_pMainDlg->PostMessage(WM_NEXT_FILE_FINISHED);
+}
+
 BEGIN_MESSAGE_MAP(CCopyFileThread, CWinThread)
+	ON_THREAD_MESSAGE(WM_NEXT_FILE, OnNextFile)
 END_MESSAGE_MAP()
 
 
