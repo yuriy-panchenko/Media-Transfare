@@ -33,7 +33,10 @@ int CCopyFileThread::ExitInstance()
 
 void CCopyFileThread::OnNextFile(WPARAM, LPARAM)
 {
-
+	//	auto rename same name
+	//	ignore duplicate files
+	//	remove copied files
+	//	ignore files less than
 
 	m_pMainDlg->PostMessage(WM_NEXT_FILE_FINISHED);
 }
