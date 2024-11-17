@@ -519,6 +519,7 @@ void CMediaTransfareDlg::OnBnClickedOk()
 	BeginWaitCursor();
 	if (UpdateData())
 	{
+		std::set<std::wstring> f;
 	}
 	EndWaitCursor();
 }
