@@ -45,12 +45,16 @@ protected:
 private:
 	void UpdateControls();
 	void EnableControls(BOOL bEnable = TRUE);
+	BOOL IsDuplicateExist(const CFileStatus&)const;
 	
 	static UINT CALLBACK CollectSourceFiles(LPVOID);
 	static UINT CALLBACK CollectDestinationFiles(LPVOID);
 	static void LoadFolderFiles(CMediaTransfareDlg* pDlg, const std::filesystem::path& dir, BOOL bLoadSubFolders, CArray<CFileStatus>& info);
 	static void InsertComas(CString& str);
 	static CString ReadableFormat(size_t len);
+	static fs::path CreateUniqueFilename(const std::set<fs::path>&,const fs::path&);
+	static BOOL IsIdenticalFiles(const fs::path&, const fs::path&);
+	static BOOL RecycleFileFolder(const std::wstring& path);
 
 private:
 	BOOL m_bAutoRename;
@@ -71,4 +75,8 @@ private:
 	
 	CArray<CFileStatus> m_srcFiles, m_dstFiles;
 	CStringArray m_Extensions;
+
+
+	//	main cycle variables
+	//std::set<fs::path> mcv_dstNames;
 };

@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <fstream>
 
 namespace fs = std::filesystem;
 

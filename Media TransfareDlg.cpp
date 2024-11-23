@@ -3,10 +3,8 @@
 //
 
 #include "pch.h"
-#include "framework.h"
 #include "Media Transfare.h"
 #include "Media TransfareDlg.h"
-#include "afxdialogex.h"
 #include "CFileTypesDlg.h"
 
 #ifdef _DEBUG
@@ -454,6 +452,7 @@ UINT CMediaTransfareDlg::CollectSourceFiles(LPVOID pData)
 	CArray<CFileStatus> info;
 	LoadFolderFiles(pDlg, pDlg->m_srcPath.GetString(), pDlg->m_bSearchSubFolders, info);
 
+	pDlg->m_srcFiles.RemoveAll();
 	pDlg->m_srcFiles.Copy(info);
 
 	return 0;
@@ -514,12 +513,148 @@ void CMediaTransfareDlg::OnBnClickedCancel()
 	CDialogEx::OnCancel();
 }
 
+BOOL CMediaTransfareDlg::IsIdenticalFiles(const fs::path& p1, const fs::path& p2)
+{
+	std::ifstream
+		f1(p1, std::ifstream::binary | std::ifstream::ate),
+		f2(p2, std::ifstream::binary | std::ifstream::ate);
+
+	if (f1.fail() || f2.fail())
+	{
+		return FALSE; //file problem
+	}
+
+	if (f1.tellg() != f2.tellg())
+	{
+		ASSERT(FALSE);
+		return FALSE; //size mismatch
+	}
+
+	//seek back to beginning and use std::equal to compare contents
+	f1.seekg(0, std::ifstream::beg);
+	f2.seekg(0, std::ifstream::beg);
+	return std::equal(std::istreambuf_iterator<char>(f1.rdbuf()),
+		std::istreambuf_iterator<char>(),
+		std::istreambuf_iterator<char>(f2.rdbuf()));
+}
+
+BOOL CMediaTransfareDlg::IsDuplicateExist(const CFileStatus& src)const
+{
+	for (INT_PTR i = 0; i < m_dstFiles.GetCount(); ++i)
+		if (m_dstFiles[i].m_size == src.m_size
+			&& IsIdenticalFiles(m_dstFiles[i].m_szFullName, src.m_szFullName))
+			return TRUE;
+
+	return FALSE;
+}
+
+fs::path CMediaTransfareDlg::CreateUniqueFilename(const std::set<fs::path>& dsts, const fs::path& src)
+{
+	CString s;
+
+	for (int i = 1; i < 10'000; i++)
+	{
+		s.Format(_T(" (%d)"), i);
+		auto fn{ src };
+		fn.replace_extension();
+		fn += s.GetString();
+		fn += src.extension();
+
+		if (dsts.find(fn) == dsts.end())
+			return fn;
+	}
+
+	return {};
+}
+
+BOOL CMediaTransfareDlg::RecycleFileFolder(const std::wstring& path)
+{
+	const auto widestr{ path + std::wstring(1, _T('\0')) };
+
+	SHFILEOPSTRUCT fileOp{};
+	fileOp.wFunc = FO_DELETE;
+	fileOp.pFrom = widestr.c_str();
+	fileOp.fFlags = FOF_ALLOWUNDO | FOF_NOERRORUI | FOF_NOCONFIRMATION | FOF_SILENT;
+
+	return SHFileOperation(&fileOp);
+}
+
 void CMediaTransfareDlg::OnBnClickedOk()
 {
 	BeginWaitCursor();
+
 	if (UpdateData())
 	{
-		std::set<std::wstring> f;
+		std::set<fs::path> dstNames;
+
+		for (INT_PTR i = 0; i < m_dstFiles.GetCount(); ++i)
+			dstNames.insert(fs::path{ m_dstFiles[i].m_szFullName }.filename());
+
+		auto minFileSize{ 0ull };
+
+		if (m_bIgnoreFilesLess)
+			switch (m_iIgnoreSizeType)
+			{
+			case 0:minFileSize = size_t(m_iIgnoreSize); break;
+			case 1:minFileSize = size_t(m_iIgnoreSize) << 10; break;
+			case 3:
+			default:minFileSize = size_t(m_iIgnoreSize) << 20; break;
+			}
+
+		decltype(dstNames.end()) itDst;
+		const fs::path dstPath{ m_dstPath.GetString() };
+		std::vector<fs::path> copiedFiles;
+
+		for (INT_PTR i = 0; i < m_srcFiles.GetCount(); ++i)
+		{
+			const auto& stat{ m_srcFiles[i] };
+
+			// ignore files less than XXX size
+			if (stat.m_size < minFileSize)
+				continue;
+
+			// ignore duplicate files
+			if (m_bIgnoreDuplicates)
+				if (IsDuplicateExist(stat))
+					continue;
+
+			// auto rename filename
+			const fs::path srcFileFullPath{ stat.m_szFullName };
+			const auto srcFilename{ srcFileFullPath.filename() };
+			auto dstFilename{ srcFilename };
+
+			itDst = dstNames.find(srcFilename);
+
+			if (m_bAutoRename && itDst != dstNames.end())
+				dstFilename = CreateUniqueFilename(dstNames, srcFilename),
+				itDst = dstNames.end();
+
+			//	copy file
+			const auto dstfp{ dstPath / dstFilename };
+			if (itDst == dstNames.end()
+				&& fs::copy_file(srcFileFullPath, dstfp))
+			{
+				copiedFiles.push_back(srcFileFullPath);
+				dstNames.insert(dstFilename);
+
+				CFileStatus stat2{ stat };
+				::_tcscpy_s(stat2.m_szFullName, dstfp.wstring().c_str());
+				m_dstFiles.Add(stat2);
+			}
+		}
+
+		// remove copied files
+		if (m_bRemoveCopied)
+		{
+			for (auto& fn : copiedFiles)
+				RecycleFileFolder(fn.wstring());
+				//fs::remove(fn);
+
+			OnChangeBrowseSrc();
+		}
+
+		OnChangeBrowseDst();
 	}
+
 	EndWaitCursor();
 }
