@@ -28,7 +28,7 @@
 #define FILE_EXTENSION_LIST	_T("ExtList.bin")
 
 #ifdef _DEBUG
-#define _DEBUG_TEST
+//#define _DEBUG_TEST
 #endif // _DEBUG
 
 void CMediaTransfareDlg::InsertComas(CString& str)
@@ -311,11 +311,11 @@ void CMediaTransfareDlg::OnChangeBrowseSrc()
 {
 	if (UpdateData())
 	{
-		UpdateControls();
-
 		if (!m_srcPath.IsEmpty())
 			if (auto pThread = ::AfxBeginThread(CollectSourceFiles, this))
 				::WaitForSingleObject(*pThread, INFINITE);
+
+		UpdateControls();
 
 		m_srcInfo1.Format(_T("Found %d media files"), m_srcFiles.GetSize());
 
@@ -335,11 +335,12 @@ void CMediaTransfareDlg::OnChangeBrowseSrc()
 void CMediaTransfareDlg::OnChangeBrowseDst()
 {
 	if (UpdateData())
-		UpdateControls();
 
-	if (!m_dstPath.IsEmpty())
-		if (auto pThread = ::AfxBeginThread(CollectDestinationFiles, this))
-			::WaitForSingleObject(*pThread, INFINITE);
+		if (!m_dstPath.IsEmpty())
+			if (auto pThread = ::AfxBeginThread(CollectDestinationFiles, this))
+				::WaitForSingleObject(*pThread, INFINITE);
+
+	UpdateControls();
 
 	m_dstInfo1.Format(_T("Found %d media files"), m_dstFiles.GetSize());
 
@@ -648,7 +649,7 @@ void CMediaTransfareDlg::OnBnClickedOk()
 		{
 			for (auto& fn : copiedFiles)
 				RecycleFileFolder(fn.wstring());
-				//fs::remove(fn);
+			//fs::remove(fn);
 
 			OnChangeBrowseSrc();
 		}
